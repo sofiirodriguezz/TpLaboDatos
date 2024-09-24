@@ -1,48 +1,103 @@
+#%% ==========================================================================================
+# Importamos librerias
 import pandas as pd
 from inline_sql import sql, sql_val
 
-df = pd.read_csv("/home/Estudiante/Descargas/lista-secciones.csv")
-df 
+#%% ==========================================================================================
+# Importamos los CSV "~/Downloads/sql/"
 
-df2 = pd.read_csv("/home/Estudiante/Descargas/lista-sedes.csv")
-df2 
+carpeta = "~/Downloads/sql/"
+           
 
-df3 = pd.read_csv("/home/Estudiante/Descargas/lista-sedes-datos.csv", on_bad_lines='skip')
-df3 
+lista_secciones = pd.read_csv(carpeta+"lista-secciones.csv")
+lista_secciones 
 
-df4 = pd.read_csv("/home/Estudiante/Descargas/P_Data_Extract_From_Global_Bilateral_Migration/migraciones_Data.csv")
-df4 
+lista_sedes = pd.read_csv(carpeta+"lista-sedes.csv")
+lista_sedes 
 
+lista_sedes_datos = pd.read_csv(carpeta+"lista-sedes-datos.csv", on_bad_lines='skip')
+lista_sedes_datos 
+
+migraciones = pd.read_csv(carpeta+"migraciones mundo")
+migraciones 
+
+#%% ==========================================================================================
+# Limpieza de datos
 
 consultaSQL = """
                SELECT sede_id, sede_desc_castellano AS sede, tipo_seccion  
-               FROM df;
+               FROM lista_secciones;
               """
 
-secciones_corregidas = sql^ consultaSQL
-print(secciones_corregidas) 
+lista_secciones_corregida = sql^ consultaSQL
+print(lista_secciones_corregida) 
 
 consultaSQL = """
                SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, estado, sede_tipo, pais_iso_3 AS iso_3  
-               FROM df2;
+               FROM lista_sedes;
               """
 
-sede_corregidos = sql^ consultaSQL
-print(sede_corregidos)
+lista_sedes_corregida = sql^ consultaSQL
+print(lista_sedes_corregida)
 
 consultaSQL = """
                SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, redes_sociales, pais_iso_3 AS iso_3      
-               FROM df3;
+               FROM lista_sedes_datos;
               """
 
-sede_datos_corregidos = sql^ consultaSQL
-print(sede_datos_corregidos)
+lista_sede_datos_corregida = sql^ consultaSQL
+print(lista_sede_datos_corregida)
 
+# Limpieza de datos en la tabla de migraciones, cambie el nombre de las columnas porque me daban problemas
+# Quite los nulls.
 consultaSQL = """
-               SELECT CountryOriginName AS pais_de_origen, CountryOriginCode AS codigo_pais_origen, CountryDestName AS pais_destino, CountryDestCode AS codigo_pais_destino,
-               1960[1960] AS 1960, 1970[1970] AS 1970, 1980[1980] AS 1970, 1990[1990] AS 1990, 2000[2000] AS 2000 
-               FROM df4
-               WHERE NOT 1960 = 0 AND 1970 = 0 AND 1980 = 0 AND 1990 = 0 AND 2000 = 0;
+               SELECT CountryOriginName AS pais_de_origen, CountryOriginCode AS codigo_pais_origen, 
+               CountryDestName AS pais_destino, CountryDestCode AS codigo_pais_destino,
+               sesentas, setentas, ochentas, noventas, dosmil
+               FROM migraciones
+               WHERE sesentas IS NOT NULL AND
+                     setentas IS NOT NULL AND
+                     ochentas IS NOT NULL AND
+                     noventas IS NOT NULL AND
+                     dosmil IS NOT NULL;
               """
+migraciones_sin_nulls = sql^ consultaSQL
+# Ademas de los nulls, hay muchas filas con el valor '..' para sacarlo tuve que convertir las columnas a string y despues nuevamente a enteros
+consultaSQL = """
+               SELECT pais_de_origen, codigo_pais_origen, 
+                 pais_destino, codigo_pais_destino,
+                 CAST(sesentas AS INT) AS sesentas,
+                 CAST(setentas AS INT) AS setentas,
+                 CAST(ochentas AS INT) AS ochentas,
+                 CAST(noventas AS INT) AS noventas,
+                 CAST(dosmil AS INT) AS dosmil
+               FROM (
+                 SELECT pais_de_origen, codigo_pais_origen, 
+                  pais_destino, codigo_pais_destino,
+                  CAST(sesentas AS STRING) AS sesentas,
+                  CAST(setentas AS STRING) AS setentas,
+                  CAST(ochentas AS STRING) AS ochentas,
+                  CAST(noventas AS STRING) AS noventas,
+                  CAST(dosmil AS STRING) AS dosmil
+                  FROM migraciones_sin_nulls
+               ) AS subquery
+               WHERE 
+                sesentas != '..' AND
+                setentas != '..' AND
+                ochentas != '..' AND
+                noventas != '..' AND
+                dosmil != '..';
+              """
+migraciones_filtrada = sql^ consultaSQL
+migraciones_filtrada
 
-migraciones = sql^ consultaSQL
+# Y ahora si puedo sacar todas aquellas donde las cinco filas son cero
+consultaSQL = """
+               SELECT pais_de_origen, codigo_pais_origen, 
+               pais_destino, codigo_pais_destino,
+               sesentas AS "1960", setentas AS "1970", ochentas AS "1980", noventas AS "1990", dosmil AS "2000"
+               FROM migraciones_filtrada
+               WHERE sesentas != 0 AND setentas != 0 AND ochentas != 0 AND noventas != 0 AND dosmil != 0;
+              """
+migraciones_corregida = sql^ consultaSQL
+migraciones_corregida
