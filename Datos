@@ -4,8 +4,8 @@ import pandas as pd
 from inline_sql import sql, sql_val
 
 #%% ==========================================================================================
-# Importamos los CSV "~/Downloads/sql/"
-
+# Importamos los CSV 
+# Puse esta carpeta para que cada uno ponga la direccion del archivo una sola vez
 carpeta = "~/Downloads/sql/"
            
 
