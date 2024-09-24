@@ -33,7 +33,10 @@ lista_secciones_corregida = sql^ consultaSQL
 print(lista_secciones_corregida) 
 
 consultaSQL = """
-               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, estado, sede_tipo, pais_iso_3 AS iso_3  
+               SELECT sede_id, sede_desc_castellano AS sede, 
+               pais_castellano AS pais, 
+               ciudad_castellano AS ciudad, estado, sede_tipo, 
+               pais_iso_3 AS iso_3  
                FROM lista_sedes;
               """
 
@@ -41,7 +44,9 @@ lista_sedes_corregida = sql^ consultaSQL
 print(lista_sedes_corregida)
 
 consultaSQL = """
-               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, redes_sociales, pais_iso_3 AS iso_3      
+               SELECT sede_id, sede_desc_castellano AS sede, 
+               pais_castellano AS pais, ciudad_castellano AS ciudad, 
+               redes_sociales, pais_iso_3 AS iso_3      
                FROM lista_sedes_datos;
               """
 
