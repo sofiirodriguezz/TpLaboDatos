@@ -18,7 +18,7 @@ lista_sedes
 lista_sedes_datos = pd.read_csv(carpeta+"lista-sedes-datos.csv", on_bad_lines='skip')
 lista_sedes_datos 
 
-migraciones = pd.read_csv(carpeta+"migraciones")
+migraciones = pd.read_csv(carpeta+"migraciones.csv")
 migraciones 
 
 #%% ==========================================================================================
