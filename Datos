@@ -211,3 +211,69 @@ reporte = sql^ consultaSQL
 reporte
 
 #%% ==========================================================================================
+#ii)
+
+# cuento sin repetir los paises con sedes en argentina
+consultaSQL = """
+SELECT region_geografica,
+       COUNT(DISTINCT pais) AS paises_con_sedes_argentinas,
+       FROM lista_sede_datos_corregida
+       GROUP BY region_geografica
+
+"""
+paises_sedes = sql^ consultaSQL 
+
+
+#separo en una tabla los paises donde argentina tiene sedes
+# asi lo uso para hacer el promedio que me piden 
+
+consultaSQL = """
+SELECT DISTINCT iso_3, region_geografica
+FROM lista_sede_datos_corregida
+"""
+pais_destino = sql^ consultaSQL
+
+#hago un inner join con los paises donde argentina tiene sedes y el pais de destino en migraciones
+# Ademas filtro las columnas donde el pais de origen sea argentina
+consultaSQL = """
+SELECT pais_de_origen, codigo_pais_destino, '2000', region_geografica
+FROM migraciones_corregida
+INNER JOIN pais_destino
+ON migraciones_corregida.codigo_pais_destino = pais_destino.iso_3
+WHERE pais_de_origen = 'Argentina'
+"""
+
+flujo_arg= sql^ consultaSQL
+
+# calculo el promedio, primero cuento la cantidad de paises a la que arribaron desde arg
+# despues hago el promedio sobre esa suma
+consultaSQL = """
+SELECT region_geografica, 
+      AVG(flujo) AS promedio_flujo_con_arg  
+FROM (
+      SELECT region_geografica,
+             COUNT(codigo_pais_destino) AS flujo
+      FROM flujo_arg
+      GROUP BY region_geografica
+      )
+GROUP BY region_geografica
+"""
+
+promedio_flujo= sql^ consultaSQL
+
+
+# uno las tablas de los paises con sede en arg y del promedio
+consultaSQL = """
+SELECT paises_sedes.region_geografica,
+       paises_con_sedes_argentinas,
+       promedio_flujo_con_arg
+       
+FROM paises_sedes
+INNER JOIN promedio_flujo
+ON paises_sedes.region_geografica = promedio_flujo.region_geografica
+GROUP BY paises_sedes.region_geografica, paises_sedes.paises_con_sedes_argentinas, promedio_flujo.promedio_flujo_con_arg
+ORDER BY promedio_flujo_con_arg DESC
+
+"""
+
+reporte2 = sql^ consultaSQL 
