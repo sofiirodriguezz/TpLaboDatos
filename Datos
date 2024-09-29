@@ -4,9 +4,9 @@ import pandas as pd
 from inline_sql import sql, sql_val
 
 #%% ==========================================================================================
-# Importamos los CSV "~/Downloads/sql/"
+# Importamos los CSV 
 
-carpeta = "C:/Users/franc/Documents/Facultad/Laboratorio de datos/"
+carpeta = "~/Downloads/sql/"
            
 
 lista_secciones = pd.read_csv(carpeta+"lista-secciones.csv")
