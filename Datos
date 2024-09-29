@@ -63,7 +63,8 @@ print(lista_sedes_corregida)
 lista_sedes_datos.info()
 
 consultaSQL = """
-               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, redes_sociales, pais_iso_3 AS iso_3      
+               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, 
+               redes_sociales, pais_iso_3 AS iso_3, region_geografica      
                FROM lista_sedes_datos;
               """
 
@@ -277,3 +278,4 @@ ORDER BY promedio_flujo_con_arg DESC
 """
 
 reporte2 = sql^ consultaSQL 
+reporte2 
