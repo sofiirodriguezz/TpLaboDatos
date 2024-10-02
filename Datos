@@ -249,14 +249,22 @@ flujo_arg= sql^ consultaSQL
 # calculo el promedio, primero cuento la cantidad de paises a la que arribaron desde arg
 # despues hago el promedio sobre esa suma
 consultaSQL = """
-SELECT region_geografica, 
-      AVG(flujo) AS promedio_flujo_con_arg  
+AVG(inmigracion - emigracion) AS promedio_flujo_con_arg  
 FROM (
       SELECT region_geografica,
-             COUNT(codigo_pais_destino) AS flujo
+             codigo_pais_destino, SUM("2000") AS emigracion
       FROM flujo_arg
-      GROUP BY region_geografica
-      )
+      GROUP BY region_geografica, codigo_pais_destino
+      ) AS em
+INNER JOIN (
+      SELECT codigo_pais_origen, SUM("2000") AS inmigracion
+      FROM migraciones_corregida
+      INNER JOIN pais_destin
+      ON migraciones_corregida.codigo_pais_origen = pais_destin.iso_3
+      WHERE pais_destino = 'Argentina'
+      GROUP BY codigo_pais_origen
+) AS inm 
+ON em.codigo_pais_destino = inm.codigo_pais_origen    
 GROUP BY region_geografica
 """
 
