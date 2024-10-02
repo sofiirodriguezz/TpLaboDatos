@@ -232,15 +232,15 @@ consultaSQL = """
 SELECT DISTINCT iso_3, region_geografica
 FROM lista_sede_datos_corregida
 """
-pais_destino = sql^ consultaSQL
+pais_destin = sql^ consultaSQL
 
 #hago un inner join con los paises donde argentina tiene sedes y el pais de destino en migraciones
 # Ademas filtro las columnas donde el pais de origen sea argentina
 consultaSQL = """
-SELECT pais_de_origen, codigo_pais_destino, '2000', region_geografica
+SELECT pais_de_origen, codigo_pais_destino, "2000", region_geografica
 FROM migraciones_corregida
-INNER JOIN pais_destino
-ON migraciones_corregida.codigo_pais_destino = pais_destino.iso_3
+INNER JOIN pais_destin
+ON migraciones_corregida.codigo_pais_destino = pais_destin.iso_3
 WHERE pais_de_origen = 'Argentina'
 """
 
@@ -248,7 +248,9 @@ flujo_arg= sql^ consultaSQL
 
 # calculo el promedio, primero cuento la cantidad de paises a la que arribaron desde arg
 # despues hago el promedio sobre esa suma
-consultaSQL = """
+# Agregue un join para hacer el flujo
+consultaSQL = """ 
+SELECT region_geografica,
 AVG(inmigracion - emigracion) AS promedio_flujo_con_arg  
 FROM (
       SELECT region_geografica,
@@ -276,7 +278,6 @@ consultaSQL = """
 SELECT paises_sedes.region_geografica,
        paises_con_sedes_argentinas,
        promedio_flujo_con_arg
-       
 FROM paises_sedes
 INNER JOIN promedio_flujo
 ON paises_sedes.region_geografica = promedio_flujo.region_geografica
@@ -284,7 +285,6 @@ GROUP BY paises_sedes.region_geografica, paises_sedes.paises_con_sedes_argentina
 ORDER BY promedio_flujo_con_arg DESC
 
 """
-
 reporte2 = sql^ consultaSQL 
 reporte2 
 
