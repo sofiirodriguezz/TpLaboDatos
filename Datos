@@ -331,3 +331,29 @@ consultaSQL = """
 
 reporte3 = sql^ consultaSQL
 reporte3
+#%%
+# iv)
+# creo una tabla separando los url 
+redes2= redes_sin_nulls
+redes2['redes_sociales'] = redes2['redes_sociales'].astype(str)
+redes2['redes_sociales']= redes2['redes_sociales'].str.strip().str.split(' // ')
+redes2_separado = redes2.explode('redes_sociales').reset_index(drop= True)
+
+# creo el reporte que muestra al red social y el url correspondiente por pais
+consultaSQL = """
+SELECT pais, 
+       sede_id AS Sede, 
+       redes_sociales AS URL,
+       CASE 
+            WHEN redes_sociales LIKE '%twitter%' THEN 'Twitter'
+            WHEN redes_sociales LIKE '%instagram%' THEN 'Instagram'
+            WHEN redes_sociales LIKE '%facebook%' THEN 'Facebook'
+            WHEN redes_sociales LIKE '%youtube%' THEN 'Youtube'
+       END AS 'Red_Social'
+FROM redes2_separado
+GROUP BY pais, sede_id, Red_Social, URL
+ORDER BY pais ASC, Sede, Red_Social, URL
+
+"""
+
+reporte4 = sql^ consultaSQL
