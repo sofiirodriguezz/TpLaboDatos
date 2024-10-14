@@ -216,6 +216,9 @@ consultaSQL = """
 reporte = sql^ consultaSQL
 reporte
 
+# Guardo el reporte en un archivo excel
+reporte.to_excel(carpeta+'flujo_migratorio_neto.xlsx', index=False)
+
 #%% ==========================================================================================
 ##ii)
 
@@ -288,6 +291,8 @@ consultaSQL = """
 reporte2 = sql^ consultaSQL 
 reporte2
 
+# Guardo el reporte en un archivo excel
+reporte2.to_excel(carpeta+'flujo_migratorio_arg.xlsx', index=False)
 #%% ==========================================================================================
 ## iii)
 
@@ -331,6 +336,9 @@ consultaSQL = """
 
 reporte3 = sql^ consultaSQL
 reporte3
+
+# Guardo el reporte en un archivo excel
+reporte3.to_excel(carpeta+'tipos_de_redes.xlsx', index=False)
 #%% ==========================================================================================
 ## iv)
 # creo una tabla separando los url 
@@ -358,6 +366,8 @@ ORDER BY pais ASC, Sede, Red_Social, URL
 
 reporte4 = sql^ consultaSQL
 
+# Guardo el reporte en un archivo excel
+reporte4.to_excel(carpeta+'redes_sociales.xlsx', index=False)
 #%% ==========================================================================================
 # VISUALIZACION
 ## i)
@@ -465,4 +475,5 @@ for i in range(len(flujo)):
 
 plt.show()
 
-# No encontre ninguna relacion clara entre estas variables
+# Los paises con mayor cantidad de sedes tienen un mayor flujo migratorio, en terminos de modulo, aunque no se ve una relacion tan directa
+
