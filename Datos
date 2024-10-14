@@ -221,11 +221,7 @@ reporte
 
 ## filtro las migraciones que estan relacionadas con Argentina
 migraciones_ARG = (migraciones_corregida['codigo_pais_origen'].astype(str) == 'ARG') | (migraciones_corregida['codigo_pais_destino'].astype(str) == 'ARG')
-migraciones_ARG = migraciones_corregida[migraciones_ARG]
-migraciones_ARG
-## filtro aquellas donde hay sedes
-filtro = (migraciones_ARG['codigo_pais_origen'].isin(lista_sede_datos_corregida['iso_3'])) | (migraciones_ARG['codigo_pais_destino'].isin(lista_sede_datos_corregida['iso_3']))
-migraciones_con_sedes = migraciones_ARG[filtro]
+migraciones_con_sedes = migraciones_corregida[migraciones_ARG]
 migraciones_con_sedes
 
 
