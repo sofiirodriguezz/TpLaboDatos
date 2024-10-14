@@ -2,6 +2,11 @@
 # Importamos librerias
 import pandas as pd
 from inline_sql import sql, sql_val
+import numpy as np
+import matplotlib.pyplot as plt 
+from   matplotlib import ticker  
+from matplotlib import rcParams
+import seaborn as sns 
 
 #%% ==========================================================================================
 # Importamos los CSV 
@@ -129,9 +134,9 @@ migraciones_corregida
 
 #%% ==========================================================================================
  
-# Punto h) 
+## Punto h) 
 
-# I)
+## I)
 # Creo una tabla con la cantidad de secciones promedio por pais
 consultaSQL = """
                  SELECT AVG(cantidad_de_secciones) AS secciones_promedio,
@@ -212,84 +217,83 @@ reporte = sql^ consultaSQL
 reporte
 
 #%% ==========================================================================================
-#ii)
+##ii)
 
-# cuento sin repetir los paises con sedes en argentina
+## filtro las migraciones que estan relacionadas con Argentina
+migraciones_ARG = (migraciones_corregida['codigo_pais_origen'].astype(str) == 'ARG') | (migraciones_corregida['codigo_pais_destino'].astype(str) == 'ARG')
+migraciones_ARG = migraciones_corregida[migraciones_ARG]
+migraciones_ARG
+## filtro aquellas donde hay sedes
+filtro = (migraciones_ARG['codigo_pais_origen'].isin(lista_sede_datos_corregida['iso_3'])) | (migraciones_ARG['codigo_pais_destino'].isin(lista_sede_datos_corregida['iso_3']))
+migraciones_con_sedes = migraciones_ARG[filtro]
+migraciones_con_sedes
+
+
+# Calculo el flujo migratorio de cada pais con Argentina
 consultaSQL = """
-SELECT region_geografica,
-       COUNT(DISTINCT pais) AS paises_con_sedes_argentinas,
-       FROM lista_sede_datos_corregida
-       GROUP BY region_geografica
+                 SELECT (cantidad_de_inmigracion - cantidad_de_emigracion) AS flujo_migratorio_neto,
+                 codigo_pais_origen AS iso_3,
+                 FROM (
+                     SELECT codigo_pais_origen,
+                     "2000" AS cantidad_de_emigracion
+                     FROM migraciones_con_sedes
+                     WHERE pais_destino = 'Argentina'
+                 ) AS emigracion
+                 INNER JOIN (
+                     SELECT codigo_pais_destino,
+                     "2000" AS cantidad_de_inmigracion
+                     FROM migraciones_con_sedes
+                     WHERE pais_de_origen = 'Argentina'
+                 ) AS inmigracion
+                 ON emigracion.codigo_pais_origen = inmigracion.codigo_pais_destino;
+              """
+
+flujo_migratorio = sql^ consultaSQL
+flujo_migratorio
+
+# Agrupo por region
+consultaSQL = """
+                SELECT flujo_migratorio.iso_3,
+                flujo_migratorio_neto,
+                region_geografica,
+                FROM flujo_migratorio
+                INNER JOIN (
+                   SELECT DISTINCT region_geografica,
+                   iso_3,
+                   FROM lista_sede_datos_corregida
+                ) AS region
+                ON flujo_migratorio.iso_3 = region.iso_3;
 
 """
-paises_sedes = sql^ consultaSQL 
+migracion_por_region = sql^ consultaSQL 
+migracion_por_region
 
-
-#separo en una tabla los paises donde argentina tiene sedes
-# asi lo uso para hacer el promedio que me piden 
-
+## Calulo el promedio del fuljo migratorio agrupando por region geografica
+# Al realizar el INNER JOIN se perderan los datos de aquellos paises que no tengan sedes, porque el codigo de pais no aparece en la tabla 
 consultaSQL = """
-SELECT DISTINCT iso_3, region_geografica
-FROM lista_sede_datos_corregida
-"""
-pais_destin = sql^ consultaSQL
-
-#hago un inner join con los paises donde argentina tiene sedes y el pais de destino en migraciones
-# Ademas filtro las columnas donde el pais de origen sea argentina
-consultaSQL = """
-SELECT pais_de_origen, codigo_pais_destino, "2000", region_geografica
-FROM migraciones_corregida
-INNER JOIN pais_destin
-ON migraciones_corregida.codigo_pais_destino = pais_destin.iso_3
-WHERE pais_de_origen = 'Argentina'
-"""
-
-flujo_arg= sql^ consultaSQL
-
-# calculo el promedio, primero cuento la cantidad de paises a la que arribaron desde arg
-# despues hago el promedio sobre esa suma
-# Agregue un join para hacer el flujo
-consultaSQL = """ 
-SELECT region_geografica,
-AVG(inmigracion - emigracion) AS promedio_flujo_con_arg  
-FROM (
-      SELECT region_geografica,
-             codigo_pais_destino, SUM("2000") AS emigracion
-      FROM flujo_arg
-      GROUP BY region_geografica, codigo_pais_destino
-      ) AS em
-INNER JOIN (
-      SELECT codigo_pais_origen, SUM("2000") AS inmigracion
-      FROM migraciones_corregida
-      INNER JOIN pais_destin
-      ON migraciones_corregida.codigo_pais_origen = pais_destin.iso_3
-      WHERE pais_destino = 'Argentina'
-      GROUP BY codigo_pais_origen
-) AS inm 
-ON em.codigo_pais_destino = inm.codigo_pais_origen    
-GROUP BY region_geografica
-"""
-
-promedio_flujo= sql^ consultaSQL
-
-
-# uno las tablas de los paises con sede en arg y del promedio
-consultaSQL = """
-SELECT paises_sedes.region_geografica,
-       paises_con_sedes_argentinas,
-       promedio_flujo_con_arg
-FROM paises_sedes
-INNER JOIN promedio_flujo
-ON paises_sedes.region_geografica = promedio_flujo.region_geografica
-GROUP BY paises_sedes.region_geografica, paises_sedes.paises_con_sedes_argentinas, promedio_flujo.promedio_flujo_con_arg
-ORDER BY promedio_flujo_con_arg DESC
+                SELECT flujo.region_geografica,
+                paises_con_sedes_Argentinas,
+                promedio_flujo_con_Argentina
+                FROM (
+                      SELECT AVG(flujo_migratorio_neto) AS promedio_flujo_con_Argentina,
+                      region_geografica,
+                      FROM migracion_por_region
+                      GROUP BY region_geografica
+                ) AS flujo
+                INNER JOIN (
+                      SELECT region_geografica,
+                      COUNT(DISTINCT pais) AS paises_con_sedes_argentinas,
+                      FROM lista_sede_datos_corregida
+                      GROUP BY region_geografica
+                ) AS paises_sedes 
+                ON flujo.region_geografica = paises_sedes.region_geografica;
 
 """
 reporte2 = sql^ consultaSQL 
-reporte2 
+reporte2
 
 #%% ==========================================================================================
-# iii)
+## iii)
 
 # Hay valores nulos en redes_sociales
 lista_sede_datos_corregida.info()
@@ -331,8 +335,8 @@ consultaSQL = """
 
 reporte3 = sql^ consultaSQL
 reporte3
-#%%
-# iv)
+#%% ==========================================================================================
+## iv)
 # creo una tabla separando los url 
 redes2= redes_sin_nulls
 redes2['redes_sociales'] = redes2['redes_sociales'].astype(str)
@@ -358,9 +362,9 @@ ORDER BY pais ASC, Sede, Red_Social, URL
 
 reporte4 = sql^ consultaSQL
 
-#%%
+#%% ==========================================================================================
 # VISUALIZACION
-# i)
+## i)
 
 # creo la tabla que me va a servir para hacer el grafico que me piden
 consultaSQL = """
@@ -397,3 +401,72 @@ ax.bar_label(ax.containers[0], fontsize=8)
 
 
 plt.show()
+
+#%% ==========================================================================================
+## iii) 
+
+consultaSQL = """     
+                SELECT iso_3,
+                COUNT(pais) AS paises_con_sedes_argentinas,
+                FROM lista_sede_datos_corregida
+                GROUP BY iso_3
+                ORDER BY paises_con_sedes_argentinas DESC;
+
+"""
+sedes = sql^ consultaSQL 
+sedes
+
+# Uno las tablas con pandas
+migraciones_de_cada_pais = pd.merge(sedes, flujo_migratorio, on='iso_3', how='left')
+
+# Reemplazamos los nulls en la columna de sedes por cero
+migraciones_de_cada_pais['paises_con_sedes_argentinas'] = migraciones_de_cada_pais['paises_con_sedes_argentinas'].fillna(0)
+
+# Hay paises con fuljo migratorio nulos, los reemplazo por cero
+migraciones_de_cada_pais['flujo_migratorio_neto'] = migraciones_de_cada_pais['flujo_migratorio_neto'].fillna(0)
+migraciones_de_cada_pais
+
+nombres = migraciones_corregida[['codigo_pais_destino', 'pais_destino']]
+
+# Renombrar la columna codigo_pais_destino a iso_3
+nombres = nombres.rename(columns={'codigo_pais_destino': 'iso_3'})
+
+# Agregar los nombres
+flujo = pd.merge(migraciones_de_cada_pais, nombres, on='iso_3', how='left')
+
+
+# Elimino las filas repetidas que se generan
+flujo = flujo.drop_duplicates()
+
+# Saco los paises que no consegui el nombre
+flujo = flujo.dropna()
+
+flujo
+
+# Crear el grafico de puntos
+plt.figure(figsize=(10, 6))
+
+# Graficar el flujo migratorio en función de la cantidad de sedes
+plt.scatter(flujo['paises_con_sedes_argentinas'], flujo['flujo_migratorio_neto'], color='b')
+
+plt.xlabel('Cantidad de Sedes')
+plt.ylabel('Flujo Migratorio')
+plt.title('Relación entre Cantidad de Sedes y Flujo Migratorio')
+
+# Configurar los ticks del eje X
+plt.xticks(flujo['paises_con_sedes_argentinas'])  
+plt.grid(False) 
+
+# Agragar nombres en algunos puntos
+for i in range(len(flujo)):
+    if flujo['paises_con_sedes_argentinas'].iloc[i] > 2:  
+        pais = flujo['pais_destino'].iloc[i]  
+        plt.annotate(pais, 
+                     (flujo['paises_con_sedes_argentinas'].iloc[i], flujo['flujo_migratorio_neto'].iloc[i]), 
+                     textcoords="offset points", 
+                     xytext=(0, 5), 
+                     ha='center')
+
+plt.show()
+
+# No encontre ninguna relacion clara entre estas variables
