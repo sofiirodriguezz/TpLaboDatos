@@ -385,7 +385,7 @@ cant_sedes_region = sql^ consultaSQL
 # acomo el data frame de manera decreciente
 cant_sedes_region = cant_sedes_region.sort_values(by='cant_sedes', ascending=False) 
 
-
+fig, ax = plt.subplots()
 ax.bar(data= cant_sedes_region, x='region_geografica', height='cant_sedes') 
 fig, ax = plt.subplots()
 plt.rcParams['font.family'] = 'sans-serif'           
