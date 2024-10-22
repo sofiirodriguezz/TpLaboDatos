@@ -1,3 +1,5 @@
+# Análisis de datos de migración en países con sedes de representación argentina
+# Franco Algañaraz, Leandro Barrios, Sofía Rodríguez
 #%% ==========================================================================================
 # Importamos librerias
 import pandas as pd
@@ -10,21 +12,17 @@ import seaborn as sns
 
 #%% ==========================================================================================
 # Importamos los CSV 
-
+# Creamos una carpeta donde poner las direcciones de cada uno
 carpeta = "~/Downloads/sql/"
            
-
+# Creamos los DataFrames
 lista_secciones = pd.read_csv(carpeta+"lista-secciones.csv")
-lista_secciones 
 
 lista_sedes = pd.read_csv(carpeta+"lista-sedes.csv")
-lista_sedes 
 
-lista_sedes_datos = pd.read_csv(carpeta+"lista-sedes-datos.csv", on_bad_lines='skip')
-lista_sedes_datos 
+lista_sedes_datos = pd.read_csv(carpeta+"lista-sedes-datos.csv", on_bad_lines='skip') 
 
-migraciones = pd.read_csv(carpeta+"migraciones.csv")
-migraciones 
+migraciones = pd.read_csv(carpeta+"migraciones.csv") 
 
 #%% ==========================================================================================
 # Limpieza de datos
@@ -60,7 +58,6 @@ consultaSQL = """
               """
 
 lista_sedes_corregida = sql^ consultaSQL
-print(lista_sedes_corregida)
 
 #%% ==========================================================================================
 
@@ -68,13 +65,12 @@ print(lista_sedes_corregida)
 lista_sedes_datos.info()
 
 consultaSQL = """
-               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, 
+               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, 
                redes_sociales, pais_iso_3 AS iso_3, region_geografica      
                FROM lista_sedes_datos;
               """
 
 lista_sede_datos_corregida = sql^ consultaSQL
-print(lista_sede_datos_corregida)
 
 #%% ==========================================================================================
 
@@ -92,6 +88,7 @@ consultaSQL = """
                      dosmil IS NOT NULL;
               """
 migraciones_sin_nulls = sql^ consultaSQL
+
 # Ademas de los nulls, hay muchas filas con el valor '..' para sacarlo tuve que convertir las columnas a string y despues nuevamente a enteros
 consultaSQL = """
                SELECT pais_de_origen, codigo_pais_origen, 
@@ -119,7 +116,6 @@ consultaSQL = """
                  dosmil != '..';
               """
 migraciones_filtrada = sql^ consultaSQL
-migraciones_filtrada
 
 # Y ahora si puedo sacar todas aquellas donde las cinco filas son cero
 consultaSQL = """
@@ -130,7 +126,6 @@ consultaSQL = """
                WHERE sesentas != 0 AND setentas != 0 AND ochentas != 0 AND noventas != 0 AND dosmil != 0;
               """
 migraciones_corregida = sql^ consultaSQL
-migraciones_corregida
 
 #%% ==========================================================================================
  
@@ -155,7 +150,6 @@ consultaSQL = """
               """
 
 cantidad_de_secciones_promedio = sql^ consultaSQL
-cantidad_de_secciones_promedio
 
 # Creo una tabla con la cantidad de secciones promedio, cantidad de sedes, ordenados por pais
 consultaSQL = """
@@ -174,7 +168,6 @@ consultaSQL = """
               """
 
 secciones_promedio_sedes = sql^ consultaSQL
-secciones_promedio_sedes
 
 # Migraciones en el año 2000
 consultaSQL = """
@@ -199,7 +192,6 @@ consultaSQL = """
               """
 
 flujo_migratorio = sql^ consultaSQL
-flujo_migratorio
 
 # Reporte final 
 consultaSQL = """
@@ -214,7 +206,6 @@ consultaSQL = """
               """
 
 reporte = sql^ consultaSQL
-reporte
 
 # Guardo el reporte en un archivo excel
 reporte.to_excel(carpeta+'flujo_migratorio_neto.xlsx', index=False)
@@ -225,7 +216,6 @@ reporte.to_excel(carpeta+'flujo_migratorio_neto.xlsx', index=False)
 ## filtro las migraciones que estan relacionadas con Argentina
 migraciones_ARG = (migraciones_corregida['codigo_pais_origen'].astype(str) == 'ARG') | (migraciones_corregida['codigo_pais_destino'].astype(str) == 'ARG')
 migraciones_con_sedes = migraciones_corregida[migraciones_ARG]
-migraciones_con_sedes
 
 
 # Calculo el flujo migratorio de cada pais con Argentina
@@ -248,7 +238,6 @@ consultaSQL = """
               """
 
 flujo_migratorio = sql^ consultaSQL
-flujo_migratorio
 
 # Agrupo por region
 consultaSQL = """
@@ -265,7 +254,6 @@ consultaSQL = """
 
 """
 migracion_por_region = sql^ consultaSQL 
-migracion_por_region
 
 ## Calulo el promedio del fuljo migratorio agrupando por region geografica
 # Al realizar el INNER JOIN se perderan los datos de aquellos paises que no tengan sedes, porque el codigo de pais no aparece en la tabla 
@@ -290,10 +278,10 @@ consultaSQL = """
 
 """
 reporte2 = sql^ consultaSQL 
-reporte2
 
 # Guardo el reporte en un archivo excel
 reporte2.to_excel(carpeta+'flujo_migratorio_arg.xlsx', index=False)
+
 #%% ==========================================================================================
 ## iii)
 
@@ -308,7 +296,6 @@ consultaSQL = """
               """
 
 redes_sin_nulls = sql^ consultaSQL
-redes_sin_nulls
 
 # Creo una nueva tabla con columnas para cada red social, si la sede tiene dicha red social se asigna un 1, de lo contrario 0
 
@@ -336,7 +323,6 @@ consultaSQL = """
               """
 
 reporte3 = sql^ consultaSQL
-reporte3
 
 # Guardo el reporte en un archivo excel
 reporte3.to_excel(carpeta+'tipos_de_redes.xlsx', index=False)
@@ -364,16 +350,27 @@ GROUP BY pais, sede_id, Red_Social, URL
 ORDER BY pais ASC, Sede, Red_Social, URL
 
 """
-
 reporte4 = sql^ consultaSQL
 
 # Guardo el reporte en un archivo excel
 reporte4.to_excel(carpeta+'redes_sociales.xlsx', index=False)
 #%% ==========================================================================================
+
+# Guardo las tablas limpias y los reportes en archivos CSV
+lista_sede_datos_corregida.to_csv(carpeta+'lista_sede_datos_corregida.csv', index=False)
+lista_sedes_corregida.to_csv(carpeta+'lista_sedes_corregida.csv', index=False)
+migraciones_corregida.to_csv(carpeta+'migraciones_corregida.csv', index=False)
+lista_secciones_corregida.to_csv(carpeta+'lista_secciones_corregida.csv', index=False)
+reporte.to_csv(carpeta+'reporte.csv', index=False)
+reporte2.to_csv(carpeta+'reporte2.csv', index=False)
+reporte3.to_csv(carpeta+'reporte3.csv', index=False)
+reporte4.to_csv(carpeta+'reporte4.csv', index=False)
+
+#%% ==========================================================================================
 # VISUALIZACION
 ## i)
 
-# creo la tabla que me va a servir para hacer el grafico que me piden
+# Creo la tabla para el grafico de barras
 consultaSQL = """
 SELECT region_geografica,
        COUNT(sede) AS cant_sedes
@@ -383,12 +380,11 @@ GROUP BY region_geografica
 """
 cant_sedes_region = sql^ consultaSQL
 
-# acomo el data frame de manera decreciente
+# Acomodo el data frame de manera decreciente
 cant_sedes_region = cant_sedes_region.sort_values(by='cant_sedes', ascending=False) 
 
 fig, ax = plt.subplots()
-ax.bar(data= cant_sedes_region, x='region_geografica', height='cant_sedes') 
-fig, ax = plt.subplots()
+ax.bar(data= cant_sedes_region, x='region_geografica', height='cant_sedes', color='blue') 
 plt.rcParams['font.family'] = 'sans-serif'           
 
 ax.bar(data= cant_sedes_region , x='region_geografica', height='cant_sedes')
@@ -411,6 +407,7 @@ plt.show()
 
 #%% ==========================================================================================
 ## ii)
+# Creo un dataframe con los flujos migratorios de cada pais
 consultaSQL = """
                  SELECT (cantidad_de_inmigracion - cantidad_de_emigracion) AS flujo_migratorio_neto,
                  codigo_pais_origen AS iso_3,
@@ -430,8 +427,8 @@ consultaSQL = """
               """
 
 flujo_completo = sql^ consultaSQL
-flujo_completo
 
+# Ahora agrego la region y los agrupo 
 consultaSQL = """
               SELECT AVG(flujo_migratorio_neto) AS flujo_migratorio,
               region_geografica,
@@ -447,38 +444,129 @@ consultaSQL = """
 
               """
 migracion_por_region = sql^ consultaSQL
-migracion_por_region
 
-# Calcular la mediana de los flujos migratorios por región
+# Calculo la mediana de los flujos migratorios por región
 medianas = migracion_por_region.groupby('region_geografica')['flujo_migratorio'].median().sort_values()
 
-# Reordenar las regiones según la mediana
+# Ordeno las regiones según la mediana
 migracion_por_region['region_geografica'] = pd.Categorical(migracion_por_region['region_geografica'], categories=medianas.index, ordered=True)
 
-# Crear el boxplot usando seaborn
+# Creo el boxplot usando seaborn
 plt.figure(figsize=(10, 6))
 sns.boxplot(x='region_geografica', y='flujo_migratorio', data=migracion_por_region, color='beige')
 
-# Configurar etiquetas y título
 plt.title('Boxplot de Flujos Migratorios por Región Geográfica')
 plt.xlabel('Región Geográfica')
 plt.ylabel('Flujo Migratorio')
 
 plt.xticks(rotation=60)
 
-# Cambiar la escala del eje y para no mostrar valores en notación científica
+# Cambio la escala del eje y para no mostrar valores en notación científica
 plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
 
+# Establezco límites del eje y
 plt.ylim(-1050000, 370000)
 
-# Guardar el gráfico 
-plt.savefig(carpeta+'boxplot_flujo_migratorio.png', dpi=300, bbox_inches='tight')
-# Mostrar el gráfico
+# Agrego líneas de referencia cada 100000
+for y in range(-1000000, 400000, 100000):
+    plt.axhline(y=y, color='grey', linestyle='--', linewidth=0.7)  
+
+# Guardo el gráfico
+plt.savefig('boxplot_flujo_migratorio.png', dpi=300, bbox_inches='tight')
+
+plt.show()
+
+# Boxplot de las regiones que no se ven bien
+# Boxplot Asia
+asia = migracion_por_region[migracion_por_region['region_geografica'] == 'ASIA']
+
+plt.figure(figsize=(6, 6))
+boxplot = sns.boxplot(y='flujo_migratorio', data=asia)
+boxplot.set_xlabel('Asia', fontsize=14)
+boxplot.set_ylabel('Flujo Migratorio', fontsize=14)
+
+plt.ylim(-40000, 60000)  
+
+plt.title('Boxplot de Flujo migratorio Asia', fontsize=16)
+plt.savefig(carpeta+'boxplot_Asia.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Boxplot Europa central y oriental
+
+# Elimino espacios adicionales y limpio la columna
+migracion_por_region['region_geografica'] = (
+    migracion_por_region['region_geografica']
+    .str.replace(r'\s+', ' ', regex=True)  
+    .str.strip()  
+)
+
+# Filtro los datos
+eur_cent = migracion_por_region[migracion_por_region['region_geografica'] == 'EUROPA CENTRAL Y ORIENTAL']
+eur_cent
+
+plt.figure(figsize=(6, 6))
+boxplot = sns.boxplot(y='flujo_migratorio', data=eur_cent)
+boxplot.set_xlabel('Europa central y oriental', fontsize=14)
+boxplot.set_ylabel('Flujo Migratorio', fontsize=14)
+
+plt.ylim(-350000, 10000)  
+
+plt.title('Boxplot de Flujo migratorio Europa central y oriental', fontsize=16)
+plt.savefig(carpeta+'boxplot_Europa_central', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Boxplot Europa occidental 
+
+# Elimino espacios adicionales y limpio la columna
+migracion_por_region['region_geografica'] = (
+    migracion_por_region['region_geografica']
+    .str.replace(r'\s+', ' ', regex=True)  
+    .str.strip()  
+)
+
+# Filtro los datos
+eur_occ = migracion_por_region[migracion_por_region['region_geografica'] == 'EUROPA OCCIDENTAL']
+eur_occ
+
+plt.figure(figsize=(6, 6))
+boxplot = sns.boxplot(y='flujo_migratorio', data=eur_occ)
+boxplot.set_xlabel('Europa occidental', fontsize=14)
+boxplot.set_ylabel('Flujo Migratorio', fontsize=14)
+
+plt.ylim(-150000, 20000)  
+
+plt.title('Boxplot de Flujo migratorio Europa occidental', fontsize=16)
+plt.savefig(carpeta+'boxplot_Europa_occidental.png', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Boxplot America central y caribe
+
+# Elimino espacios adicionales y limpio la columna
+migracion_por_region['region_geografica'] = (
+    migracion_por_region['region_geografica']
+    .str.replace(r'\s+', ' ', regex=True)  
+    .str.strip()  
+)
+
+# Filtro los datos
+ac_c = migracion_por_region[migracion_por_region['region_geografica'] == 'AMÉRICA CENTRAL Y CARIBE']
+ac_c
+
+plt.figure(figsize=(6, 6))
+boxplot = sns.boxplot(y='flujo_migratorio', data=ac_c)
+boxplot.set_xlabel('America central y caribe', fontsize=14)
+boxplot.set_ylabel('Flujo Migratorio', fontsize=14)
+
+plt.ylim(-4000, 6000) 
+
+plt.title('Boxplot de Flujo migratorio America central y caribe', fontsize=16)
+plt.savefig(carpeta+'boxplot_America_central.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 #%% ==========================================================================================
 ## iii) 
 
+# Creo un data frame con las sedes necesarias
 consultaSQL = """     
                 SELECT iso_3,
                 COUNT(pais) AS paises_con_sedes_argentinas,
@@ -496,7 +584,7 @@ migraciones_de_cada_pais = pd.merge(sedes, flujo_migratorio, on='iso_3', how='le
 # Reemplazamos los nulls en la columna de sedes por cero
 migraciones_de_cada_pais['paises_con_sedes_argentinas'] = migraciones_de_cada_pais['paises_con_sedes_argentinas'].fillna(0)
 
-# Hay paises con fuljo migratorio nulos, los reemplazo por cero
+# Hay paises con flujo migratorio nulos, los reemplazo por cero
 migraciones_de_cada_pais['flujo_migratorio_neto'] = migraciones_de_cada_pais['flujo_migratorio_neto'].fillna(0)
 migraciones_de_cada_pais
 
@@ -508,33 +596,24 @@ nombres = nombres.rename(columns={'codigo_pais_destino': 'iso_3'})
 # Agregar los nombres
 flujo = pd.merge(migraciones_de_cada_pais, nombres, on='iso_3', how='left')
 
-
 # Elimino las filas repetidas que se generan
 flujo = flujo.drop_duplicates()
 
 # Saco los paises que no consegui el nombre
 flujo = flujo.dropna()
 
-flujo
-
 # Crear el gráfico de puntos
 plt.figure(figsize=(8, 6))
-
-# Graficar el flujo migratorio en función de la cantidad de sedes 
+ 
 plt.scatter(flujo['paises_con_sedes_argentinas'], flujo['flujo_migratorio_neto'], color='k')  
+plt.xlabel('Cantidad de sedes')
+plt.ylabel('Flujo migratorio')
+plt.title('Relación entre cantidad de sedes y flujo migratorio')
 
-plt.xlabel('Cantidad de Sedes')
-plt.ylabel('Flujo Migratorio')
-plt.title('Relación entre Cantidad de Sedes y Flujo Migratorio')
-
-# Configurar los ticks del eje X
 plt.xticks(flujo['paises_con_sedes_argentinas'])  
 plt.grid(False) 
 
 # Guardar la figura 
 plt.savefig(carpeta+'grafico_flujo_migratorio.png', dpi=300, bbox_inches='tight')  
 
-# Mostrar el gráfico
 plt.show()
-
-# Los paises con mayor cantidad de sedes tienen un mayor flujo migratorio, en terminos de modulo
