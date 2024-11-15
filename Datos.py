@@ -1,4 +1,3 @@
-
 # Análisis de datos de migración en países con sedes de representación argentina
 # Franco Algañaraz, Leandro Barrios, Sofía Rodríguez
 #%% ==========================================================================================
@@ -14,7 +13,7 @@ import seaborn as sns
 #%% ==========================================================================================
 # Importamos los CSV 
 # Creamos una carpeta donde poner las direcciones de cada uno
-carpeta = "C:/Users/juli/Downloads/"
+carpeta = "C:/Users/franc/Documents/Facultad/Laboratorio de datos/TP - 1/"
            
 # Creamos los DataFrames
 lista_secciones = pd.read_csv(carpeta+"lista-secciones.csv")
@@ -23,7 +22,7 @@ lista_sedes = pd.read_csv(carpeta+"lista-sedes.csv")
 
 lista_sedes_datos = pd.read_csv(carpeta+"lista-sedes-datos.csv", on_bad_lines='skip') 
 
-migraciones = pd.read_csv(carpeta+"P_Data_Extract_From_Global_Bilateral_Migration/migraciones_mundo.csv") 
+migraciones = pd.read_csv(carpeta+"migraciones.csv") 
 
 #%% ==========================================================================================
 # Limpieza de datos
@@ -69,6 +68,7 @@ SELECT pais_castellano AS nombre_pais, pais_iso_3 AS codigo_pais, region_geograf
 FROM lista_sedes_datos
 """
 pais= sql^ consultaSQL
+pais= pais.drop_duplicates()
 
 
 #%%
@@ -211,72 +211,52 @@ reporte.to_excel(carpeta+'flujo_migratorio_neto.xlsx', index=False)
 
 #%% ==========================================================================================
 ##ii)
-
-## filtro las migraciones que estan relacionadas con Argentina
-migraciones_ARG = (migraciones_corregida['codigo_pais_origen'].astype(str) == 'ARG') | (migraciones_corregida['codigo_pais_destino'].astype(str) == 'ARG')
-migraciones_con_sedes = migraciones_corregida[migraciones_ARG]
-
-
-# Calculo el flujo migratorio de cada pais con Argentina
 consultaSQL = """
                  SELECT (cantidad_de_inmigracion - cantidad_de_emigracion) AS flujo_migratorio_neto,
                  codigo_pais_origen AS iso_3,
                  FROM (
                      SELECT codigo_pais_origen,
-                     "2000" AS cantidad_de_emigracion
-                     FROM migraciones_con_sedes
-                     WHERE pais_destino = 'Argentina'
+                     "2000" AS cantidad_de_inmigracion
+                     FROM recibe_gente_de
+                     WHERE codigo_pais_destino = 'ARG'
                  ) AS emigracion
                  INNER JOIN (
                      SELECT codigo_pais_destino,
-                     "2000" AS cantidad_de_inmigracion
-                     FROM migraciones_con_sedes
-                     WHERE pais_de_origen = 'Argentina'
+                     "2000" AS cantidad_de_emigracion
+                     FROM recibe_gente_de
+                     WHERE 	codigo_pais_origen = 'ARG'
                  ) AS inmigracion
                  ON emigracion.codigo_pais_origen = inmigracion.codigo_pais_destino;
               """
 
 flujo_migratorio = sql^ consultaSQL
 
-# Agrupo por region
 consultaSQL = """
-                SELECT flujo_migratorio.iso_3,
-                flujo_migratorio_neto,
-                region_geografica,
-                FROM flujo_migratorio
-                INNER JOIN (
-                   SELECT DISTINCT region_geografica,
-                   iso_3,
-                   FROM lista_sede_datos_corregida
-                ) AS region
-                ON flujo_migratorio.iso_3 = region.iso_3;
+                 SELECT flujo_migratorio.flujo_migratorio_neto,
+                 flujo_migratorio.iso_3
+                 FROM flujo_migratorio
+                 INNER JOIN (
+                     SELECT DISTINCT codigo_pais 
+                     FROM sede
+                 ) AS cantidad_sedes
+                 ON flujo_migratorio.iso_3 = cantidad_sedes.codigo_pais;
+              """
 
-"""
-migracion_por_region = sql^ consultaSQL 
+cantidad_de_sedes = sql^ consultaSQL
 
-## Calulo el promedio del fuljo migratorio agrupando por region geografica
-# Al realizar el INNER JOIN se perderan los datos de aquellos paises que no tengan sedes, porque el codigo de pais no aparece en la tabla 
 consultaSQL = """
-                SELECT flujo.region_geografica,
-                paises_con_sedes_Argentinas,
-                promedio_flujo_con_Argentina
-                FROM (
-                      SELECT AVG(flujo_migratorio_neto) AS promedio_flujo_con_Argentina,
-                      region_geografica,
-                      FROM migracion_por_region
-                      GROUP BY region_geografica
-                ) AS flujo
-                INNER JOIN (
-                      SELECT region_geografica,
-                      COUNT(DISTINCT pais) AS paises_con_sedes_argentinas,
-                      FROM lista_sede_datos_corregida
-                      GROUP BY region_geografica
-                ) AS paises_sedes 
-                ON flujo.region_geografica = paises_sedes.region_geografica
-                ORDER BY promedio_flujo_con_Argentina DESC;
+                 SELECT region_geografica,
+                 COUNT(region_geografica) AS paises_con_sedes_argentinas,
+                 AVG(flujo_migratorio_neto) AS promedio_flujo_migratorio
+                 FROM cantidad_de_sedes
+                 INNER JOIN pais
+                 ON cantidad_de_sedes.iso_3 = pais.codigo_pais
+                 GROUP BY region_geografica
+                 ORDER BY region_geografica DESC;
+              """
 
-"""
-reporte2 = sql^ consultaSQL 
+reporte2 = sql^ consultaSQL
+reporte2
 
 # Guardo el reporte en un archivo excel
 reporte2.to_excel(carpeta+'flujo_migratorio_arg.xlsx', index=False)
