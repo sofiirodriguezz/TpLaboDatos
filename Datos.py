@@ -1,3 +1,4 @@
+
 # Análisis de datos de migración en países con sedes de representación argentina
 # Franco Algañaraz, Leandro Barrios, Sofía Rodríguez
 #%% ==========================================================================================
@@ -13,7 +14,7 @@ import seaborn as sns
 #%% ==========================================================================================
 # Importamos los CSV 
 # Creamos una carpeta donde poner las direcciones de cada uno
-carpeta = "~/Downloads/sql/"
+carpeta = "C:/Users/juli/Downloads/"
            
 # Creamos los DataFrames
 lista_secciones = pd.read_csv(carpeta+"lista-secciones.csv")
@@ -22,7 +23,7 @@ lista_sedes = pd.read_csv(carpeta+"lista-sedes.csv")
 
 lista_sedes_datos = pd.read_csv(carpeta+"lista-sedes-datos.csv", on_bad_lines='skip') 
 
-migraciones = pd.read_csv(carpeta+"migraciones.csv") 
+migraciones = pd.read_csv(carpeta+"P_Data_Extract_From_Global_Bilateral_Migration/migraciones_mundo.csv") 
 
 #%% ==========================================================================================
 # Limpieza de datos
@@ -32,32 +33,22 @@ lista_secciones.info()
 
 # Lo saco porque es la columna mas importante de esta tabla
 consultaSQL = """
-               SELECT sede_id, sede_desc_castellano AS sede, tipo_seccion  
+               SELECT sede_id, tipo_seccion  
                FROM lista_secciones
                WHERE sede_id IS NOT NULL;
               """
 
-lista_secciones_corregida = sql^ consultaSQL
-print(lista_secciones_corregida) 
+seccion = sql^ consultaSQL
+print(seccion) 
 
 # Copruebo que ya no hay NULLS
-lista_secciones_corregida.info()
+seccion.info()
 
 # Compruebo que no todas las filas de tipo_seccion son 'seccion' porque de lo contrario seria informacion irrelevante 
-sin_seccion = lista_secciones_corregida['tipo_seccion'] != 'Seccion'
-lista_secciones_corregida[sin_seccion]
+sin_seccion = seccion['tipo_seccion'] != 'Seccion'
+seccion[sin_seccion]
 
-#%% ==========================================================================================
 
-# No hay NULLS
-lista_sedes.info()
-
-consultaSQL = """
-               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, ciudad_castellano AS ciudad, estado, sede_tipo, pais_iso_3 AS iso_3  
-               FROM lista_sedes;
-              """
-
-lista_sedes_corregida = sql^ consultaSQL
 
 #%% ==========================================================================================
 
@@ -65,14 +56,22 @@ lista_sedes_corregida = sql^ consultaSQL
 lista_sedes_datos.info()
 
 consultaSQL = """
-               SELECT sede_id, sede_desc_castellano AS sede, pais_castellano AS pais, 
-               redes_sociales, pais_iso_3 AS iso_3, region_geografica      
+               SELECT sede_id, sede_desc_castellano AS nombre_sede, 
+               pais_iso_3 AS codigo_pais     
                FROM lista_sedes_datos;
               """
 
-lista_sede_datos_corregida = sql^ consultaSQL
+sede = sql^ consultaSQL
 
 #%% ==========================================================================================
+consultaSQL = """
+SELECT pais_castellano AS nombre_pais, pais_iso_3 AS codigo_pais, region_geografica
+FROM lista_sedes_datos
+"""
+pais= sql^ consultaSQL
+
+
+#%%
 
 # Limpieza de datos en la tabla de migraciones, cambie el nombre de las columnas porque me daban problemas
 # Quite los nulls.
@@ -119,13 +118,13 @@ migraciones_filtrada = sql^ consultaSQL
 
 # Y ahora si puedo sacar todas aquellas donde las cinco filas son cero
 consultaSQL = """
-               SELECT pais_de_origen, codigo_pais_origen, 
-               pais_destino, codigo_pais_destino,
+               SELECT codigo_pais_origen, 
+               codigo_pais_destino,
                sesentas AS "1960", setentas AS "1970", ochentas AS "1980", noventas AS "1990", dosmil AS "2000"
                FROM migraciones_filtrada
                WHERE sesentas != 0 AND setentas != 0 AND ochentas != 0 AND noventas != 0 AND dosmil != 0;
               """
-migraciones_corregida = sql^ consultaSQL
+recibe_gente_de = sql^ consultaSQL
 
 #%% ==========================================================================================
  
