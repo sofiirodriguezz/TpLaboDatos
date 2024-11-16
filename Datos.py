@@ -320,33 +320,22 @@ GROUP BY nombre_pais
 reporte3 = sql^ consultaSQL
 
 #%% ==========================================================================================
-## iv)
-# creo una tabla separando los url 
-redes2= redes_sin_nulls
-redes2['redes_sociales'] = redes2['redes_sociales'].astype(str)
-redes2['redes_sociales']= redes2['redes_sociales'].str.strip().str.split(' // ')
-redes2_separado = redes2.explode('redes_sociales').reset_index(drop= True)
+#%%
+# iv)
 
-# creo el reporte que muestra al red social y el url correspondiente por pais
 consultaSQL = """
-SELECT pais, 
-       sede_id AS Sede, 
-       redes_sociales AS URL,
-       CASE 
-            WHEN redes_sociales LIKE '%twitter%' THEN 'Twitter'
-            WHEN redes_sociales LIKE '%instagram%' THEN 'Instagram'
-            WHEN redes_sociales LIKE '%facebook%' THEN 'Facebook'
-            WHEN redes_sociales LIKE '%youtube%' THEN 'Youtube'
-       END AS 'Red_Social'
-FROM redes2_separado
-GROUP BY pais, sede_id, Red_Social, URL
-ORDER BY pais ASC, Sede, Red_Social, URL
-
+SELECT nombre_pais AS Pais, sede_id AS Sede, Red_Social, URL
+FROM (
+      SELECT red_social.sede_id, Red_Social, URL, codigo_pais
+      FROM red_social
+      INNER JOIN sede
+      ON red_social.sede_id = sede.sede_id
+      ) AS pais_red
+INNER JOIN pais
+ON pais_red.codigo_pais = pais.codigo_pais
+ORDER BY Pais ASC, Sede, Red_Social, URL
 """
 reporte4 = sql^ consultaSQL
-
-# Guardo el reporte en un archivo excel
-reporte4.to_excel(carpeta+'redes_sociales.xlsx', index=False)
 #%% ==========================================================================================
 
 # Guardo las tablas limpias y los reportes en archivos CSV
