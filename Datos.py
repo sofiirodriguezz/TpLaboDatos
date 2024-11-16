@@ -164,83 +164,64 @@ red_social = sql^ consultaSQL
 ## Punto h) 
 
 ## I)
-# Creo una tabla con la cantidad de secciones promedio por pais
+# Creo una tabla con las secciones promedio que poseen las sedes
 consultaSQL = """
-                 SELECT AVG(cantidad_de_secciones) AS secciones_promedio,
-                 iso_3, 
-                 FROM (
-                   SELECT COUNT(tipo_seccion) AS cantidad_de_secciones,
-                   lista_secciones_corregida.sede_id,
-                   iso_3 
-                   FROM lista_secciones_corregida
-                   INNER JOIN lista_sede_datos_corregida
-                   ON lista_secciones_corregida.sede_id = lista_secciones_corregida.sede_id
-                   WHERE tipo_seccion = 'Seccion'
-                   GROUP BY lista_secciones_corregida.sede_id, iso_3
-                 )
-                 GROUP BY iso_3
-              """
+SELECT sede_id, AVG(cant_secciones) AS secciones_promedio
+FROM (
+      SELECT sede_id, COUNT(tipo_seccion) AS cant_secciones
+      FROM seccion
+      GROUP BY sede_id
+      )
+GROUP BY sede_id
+"""
+secciones_promedio= sql^ consultaSQL
 
-cantidad_de_secciones_promedio = sql^ consultaSQL
-
-# Creo una tabla con la cantidad de secciones promedio, cantidad de sedes, ordenados por pais
+# Calculo cantidad de sedes por pais y hago inner join con secciones_promedio
 consultaSQL = """
-                 SELECT cantidad_de_secciones_promedio.secciones_promedio,
-                 cantidad_de_secciones_promedio.iso_3,
-                 sedes
-                 FROM cantidad_de_secciones_promedio
-                 INNER JOIN (
-                   SELECT 
-                   iso_3,  
-                   COUNT(*) AS sedes
-                   FROM lista_sede_datos_corregida
-                   GROUP BY iso_3
-                 ) AS cantidad_de_sedes
-                 ON cantidad_de_secciones_promedio.iso_3 = cantidad_de_sedes.iso_3;
-              """
+SELECT codigo_pais, COUNT(nombre_sede) AS sedes, secciones_promedio
+FROM sede
+INNER JOIN secciones_promedio
+ON sede.sede_id = secciones_promedio.sede_id
+GROUP BY codigo_pais, secciones_promedio
+"""
+cant_promedio = sql^ consultaSQL
 
-secciones_promedio_sedes = sql^ consultaSQL
-
-# Migraciones en el año 2000
+# calculo el flujo migratorio neto
 consultaSQL = """
-                 SELECT (cantidad_de_inmigracion - cantidad_de_emigracion) AS flujo_migratorio_neto,
-                 codigo_pais_origen AS iso_3,
-                 pais_de_origen AS Pais
-                 FROM (
-                     SELECT pais_de_origen,
-                     codigo_pais_origen,
-                     SUM("2000") AS cantidad_de_emigracion
-                     FROM migraciones_corregida
-                     GROUP BY pais_de_origen, codigo_pais_origen
-                 ) AS emigracion
-                 INNER JOIN (
-                     SELECT pais_destino,
-                     codigo_pais_destino,
-                     SUM("2000") AS cantidad_de_inmigracion
-                     FROM migraciones_corregida
-                     GROUP BY pais_destino, codigo_pais_destino
-                 ) AS inmigracion
-                 ON emigracion.codigo_pais_origen = inmigracion.codigo_pais_destino;
-              """
+SELECT (cantidad_de_inmigracion - cantidad_de_emigracion) AS flujo_migratorio_neto,
+       codigo_pais_origen AS codigo_pais,
+FROM (
+     SELECT codigo_pais_origen,
+            "2000" AS cantidad_de_inmigracion
+      FROM recibe_gente_de
+      WHERE codigo_pais_destino = 'ARG'
+      ) AS emigracion
+INNER JOIN (
+      SELECT codigo_pais_destino,
+      "2000" AS cantidad_de_emigracion
+       FROM recibe_gente_de
+       WHERE codigo_pais_origen = 'ARG'
+       ) AS inmigracion
+ON emigracion.codigo_pais_origen = inmigracion.codigo_pais_destino;
 
-flujo_migratorio = sql^ consultaSQL
+"""
+flujo_migratorio_neto = sql^ consultaSQL
 
-# Reporte final 
+
 consultaSQL = """
-                 SELECT Pais,
-                 sedes,
-                 secciones_promedio,
-                 flujo_migratorio_neto,
-                 FROM secciones_promedio_sedes
-                 INNER JOIN flujo_migratorio
-                 ON secciones_promedio_sedes.iso_3 = flujo_migratorio.iso_3
-                 ORDER BY sedes DESC, Pais ASC;
-              """
+SELECT Pais, sedes, secciones_promedio, flujo_migratorio_neto
+FROM (
+      SELECT nombre_pais AS Pais, sedes, secciones_promedio, cant_promedio.codigo_pais
+      FROM cant_promedio
+      INNER JOIN pais
+      ON cant_promedio.codigo_pais = pais.codigo_pais
+      ) AS info
+INNER JOIN flujo_migratorio_neto
+ON info.codigo_pais = flujo_migratorio_neto.codigo_pais
+ORDER BY sedes DESC, pais ASC
+"""
+reporte1 = sql^ consultaSQL
 
-reporte = sql^ consultaSQL
-
-# Guardo el reporte en un archivo excel
-reporte.to_excel(carpeta+'flujo_migratorio_neto.xlsx', index=False)
 
 #%% ==========================================================================================
 ##ii)
