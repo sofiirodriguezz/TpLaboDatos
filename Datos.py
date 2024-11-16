@@ -297,47 +297,28 @@ reporte2.to_excel(carpeta+'flujo_migratorio_arg.xlsx', index=False)
 #%% ==========================================================================================
 ## iii)
 
-# Hay valores nulos en redes_sociales
-lista_sede_datos_corregida.info()
-
-# Los saco porque no suman nada en este reporte
 consultaSQL = """
-               SELECT *
-               FROM lista_sede_datos_corregida
-               WHERE redes_sociales IS NOT NULL;
-              """
+SELECT nombre_pais, Red_Social
+FROM (
+      SELECT Red_social, codigo_pais
+      FROM red_social
+      INNER JOIN sede
+      ON red_social.sede_id = sede.sede_id
+      ) AS red_codigo
+INNER JOIN pais
+ON red_codigo.codigo_pais = pais.codigo_pais
 
-redes_sin_nulls = sql^ consultaSQL
+"""
+red_pais= sql^ consultaSQL
 
-# Creo una nueva tabla con columnas para cada red social, si la sede tiene dicha red social se asigna un 1, de lo contrario 0
-
-redes = redes_sin_nulls
-
-redes['facebook'] = redes_sin_nulls['redes_sociales'].str.contains('facebook', case=False).astype(int)
-
-redes['instagram'] = redes_sin_nulls['redes_sociales'].str.contains('instagram', case=False).astype(int)
-
-redes['twitter'] = redes_sin_nulls['redes_sociales'].str.contains('twitter', case=False).astype(int)
-
-redes['youtube'] = redes_sin_nulls['redes_sociales'].str.contains('youtube', case=False).astype(int)
-
-redes['cantidad_de_redes'] = redes['facebook'] + redes['instagram'] + redes['twitter'] + redes['youtube']
-
-# Creo una tabla que indica que cantidad de redes sociales que tiene cada pais
 consultaSQL = """
-               SELECT iso_3,
-               pais_de_origen AS pais,
-               MAX(cantidad_de_redes) AS cantidad_de_redes
-               FROM redes
-               INNER JOIN migraciones_corregida
-               ON iso_3 = codigo_pais_origen
-               GROUP BY iso_3, pais_de_origen;
-              """
+SELECT nombre_pais, COUNT(DISTINCT Red_Social) AS cantidad_redes
+FROM red_pais
+GROUP BY nombre_pais
 
+"""
 reporte3 = sql^ consultaSQL
 
-# Guardo el reporte en un archivo excel
-reporte3.to_excel(carpeta+'tipos_de_redes.xlsx', index=False)
 #%% ==========================================================================================
 ## iv)
 # creo una tabla separando los url 
