@@ -335,9 +335,13 @@ reporte4.to_csv(carpeta+'reporte4.csv', index=False)
 
 # Creo la tabla para el grafico de barras
 consultaSQL = """
-SELECT region_geografica,
-       COUNT(sede) AS cant_sedes
-FROM lista_sede_datos_corregida
+SELECT region_geografica, COUNT(nombre_sede) AS cant_sedes
+FROM(
+     SELECT nombre_sede, region_geografica
+     FROM sede
+     INNER JOIN pais
+     ON sede.codigo_pais = pais.codigo_pais
+     )
 GROUP BY region_geografica
 
 """
