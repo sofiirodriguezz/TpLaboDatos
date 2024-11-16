@@ -125,6 +125,39 @@ consultaSQL = """
                WHERE sesentas != 0 AND setentas != 0 AND ochentas != 0 AND noventas != 0 AND dosmil != 0;
               """
 recibe_gente_de = sql^ consultaSQL
+#%%
+ #Hay valores nulos en redes_sociales
+lista_sedes_datos.info()
+
+# Los saco porque no suman nada en este reporte
+consultaSQL = """
+               SELECT *
+               FROM lista_sedes_datos
+               WHERE redes_sociales IS NOT NULL;
+              """
+
+redes_sin_nulls = sql^ consultaSQL
+
+# creamos una tabla separando por fila cada URL
+redes= redes_sin_nulls
+redes['redes_sociales'] = redes['redes_sociales'].astype(str)
+redes['redes_sociales']= redes['redes_sociales'].str.strip().str.split(' // ')
+red = redes.explode('redes_sociales').reset_index(drop= True)
+
+#creamos la tabla de redes sociales
+consultaSQL= """
+SELECT sede_id, 
+       redes_sociales AS URL,
+       CASE 
+            WHEN redes_sociales LIKE '%twitter%' THEN 'Twitter'
+            WHEN redes_sociales LIKE '%instagram%' THEN 'Instagram'
+            WHEN redes_sociales LIKE '%facebook%' THEN 'Facebook'
+            WHEN redes_sociales LIKE '%youtube%' THEN 'Youtube'
+       END AS 'Red_Social'
+FROM red 
+GROUP BY sede_id, redes_sociales
+"""
+red_social = sql^ consultaSQL
 
 #%% ==========================================================================================
  
