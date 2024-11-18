@@ -166,7 +166,7 @@ red_social = sql^ consultaSQL
 ## I)
 # Creo una tabla con las secciones promedio que poseen las sedes
 consultaSQL = """
-SELECT sede_id, AVG(cant_secciones) AS secciones_promedio
+SELECT sede_id, SUM(cant_secciones) AS secciones_promedio
 FROM (
       SELECT sede_id, COUNT(tipo_seccion) AS cant_secciones
       FROM seccion
@@ -209,7 +209,7 @@ flujo_migratorio_neto = sql^ consultaSQL
 
 
 consultaSQL = """
-SELECT Pais, sedes, secciones_promedio, flujo_migratorio_neto
+SELECT Pais, sedes, AVG(secciones_promedio) AS secciones_promedio, flujo_migratorio_neto
 FROM (
       SELECT nombre_pais AS Pais, sedes, secciones_promedio, cant_promedio.codigo_pais
       FROM cant_promedio
@@ -218,10 +218,11 @@ FROM (
       ) AS info
 INNER JOIN flujo_migratorio_neto
 ON info.codigo_pais = flujo_migratorio_neto.codigo_pais
+GROUP BY Pais, sedes, flujo_migratorio_neto
 ORDER BY sedes DESC, pais ASC
+
 """
 reporte1 = sql^ consultaSQL
-
 
 #%% ==========================================================================================
 ##ii)
