@@ -13,7 +13,7 @@ import seaborn as sns
 #%% ==========================================================================================
 # Importamos los CSV 
 # Creamos una carpeta donde poner las direcciones de cada uno
-carpeta = "C:/Users/franc/Documents/Facultad/Laboratorio de datos/TP - 1/"
+carpeta = "Descargas/"
            
 # Creamos los DataFrames
 lista_secciones = pd.read_csv(carpeta+"lista-secciones.csv")
@@ -223,6 +223,7 @@ ORDER BY sedes DESC, pais ASC
 
 """
 reporte1 = sql^ consultaSQL
+
 
 #%% ==========================================================================================
 ##ii)
