@@ -535,54 +535,27 @@ plt.show()
 #%% ==========================================================================================
 ## iii) 
 
-# Creo un data frame con las sedes necesarias
-consultaSQL = """     
-                SELECT iso_3,
-                COUNT(pais) AS paises_con_sedes_argentinas,
-                FROM lista_sede_datos_corregida
-                GROUP BY iso_3
-                ORDER BY paises_con_sedes_argentinas DESC;
+consultaSQL = """
+                 SELECT flujo_migratorio.flujo_migratorio_neto,
+                 cantidad_de_sedes
+                 FROM flujo_migratorio
+                 INNER JOIN (
+                     SELECT COUNT(codigo_pais) AS cantidad_de_sedes,
+                     codigo_pais 
+                     FROM sede
+                     GROUP BY codigo_pais
+                 ) AS cantidad
+                 ON flujo_migratorio.iso_3 = cantidad.codigo_pais;
+              """
 
-"""
-sedes = sql^ consultaSQL 
-sedes
+sedes_flujo = sql^ consultaSQL
+sedes_flujo
 
-# Uno las tablas con pandas
-migraciones_de_cada_pais = pd.merge(sedes, flujo_migratorio, on='iso_3', how='left')
-
-# Reemplazamos los nulls en la columna de sedes por cero
-migraciones_de_cada_pais['paises_con_sedes_argentinas'] = migraciones_de_cada_pais['paises_con_sedes_argentinas'].fillna(0)
-
-# Hay paises con flujo migratorio nulos, los reemplazo por cero
-migraciones_de_cada_pais['flujo_migratorio_neto'] = migraciones_de_cada_pais['flujo_migratorio_neto'].fillna(0)
-migraciones_de_cada_pais
-
-nombres = migraciones_corregida[['codigo_pais_destino', 'pais_destino']]
-
-# Renombrar la columna codigo_pais_destino a iso_3
-nombres = nombres.rename(columns={'codigo_pais_destino': 'iso_3'})
-
-# Agregar los nombres
-flujo = pd.merge(migraciones_de_cada_pais, nombres, on='iso_3', how='left')
-
-# Elimino las filas repetidas que se generan
-flujo = flujo.drop_duplicates()
-
-# Saco los paises que no consegui el nombre
-flujo = flujo.dropna()
-
-# Crear el gráfico de puntos
+# Grafico de puntos
 plt.figure(figsize=(8, 6))
- 
-plt.scatter(flujo['paises_con_sedes_argentinas'], flujo['flujo_migratorio_neto'], color='k')  
+plt.scatter(sedes_flujo['cantidad_de_sedes'], sedes_flujo['flujo_migratorio_neto'], alpha=0.7, c='black')
+
 plt.xlabel('Cantidad de sedes')
 plt.ylabel('Flujo migratorio')
-plt.title('Relación entre cantidad de sedes y flujo migratorio')
-
-plt.xticks(flujo['paises_con_sedes_argentinas'])  
-plt.grid(False) 
-
-# Guardar la figura 
-plt.savefig(carpeta+'grafico_flujo_migratorio.png', dpi=300, bbox_inches='tight')  
-
+plt.title('Relación entre cantidad de sedes y el flujo migratorio')
 plt.show()
