@@ -379,18 +379,18 @@ plt.show()
 # Creo un dataframe con los flujos migratorios de cada pais
 consultaSQL = """
                  SELECT (cantidad_de_inmigracion - cantidad_de_emigracion) AS flujo_migratorio_neto,
-                 codigo_pais_origen AS iso_3,
+                 codigo_pais_origen AS codigo_pais,
                  FROM (
                      SELECT codigo_pais_origen,
                      ("1960" + "1970" + "1980" + "1990" + "2000") AS cantidad_de_emigracion
-                     FROM migraciones_con_sedes
-                     WHERE pais_destino = 'Argentina'
+                     FROM recibe_gente_de
+                     WHERE codigo_pais_destino = 'ARG'
                  ) AS emigracion
                  INNER JOIN (
                      SELECT codigo_pais_destino,
                      ("1960" + "1970" + "1980" + "1990" + "2000") AS cantidad_de_inmigracion
-                     FROM migraciones_con_sedes
-                     WHERE pais_de_origen = 'Argentina'
+                     FROM recibe_gente_de
+                     WHERE codigo_pais_origen = 'ARG'
                  ) AS inmigracion
                  ON emigracion.codigo_pais_origen = inmigracion.codigo_pais_destino;
               """
@@ -401,15 +401,15 @@ flujo_completo = sql^ consultaSQL
 consultaSQL = """
               SELECT AVG(flujo_migratorio_neto) AS flujo_migratorio,
               region_geografica,
-              flujo_completo.iso_3
+              flujo_completo.codigo_pais
               FROM flujo_completo
               INNER JOIN (
-              SELECT DISTINCT region_geografica,
-              iso_3,
-              FROM lista_sede_datos_corregida
-              ) AS region
-              ON flujo_completo.iso_3 = region.iso_3
-              GROUP BY region_geografica, flujo_completo.iso_3;
+                        SELECT DISTINCT region_geografica,
+                        codigo_pais,
+                        FROM pais
+                         ) AS region
+              ON flujo_completo.codigo_pais = region.codigo_pais
+              GROUP BY region_geografica, flujo_completo.codigo_pais;
 
               """
 migracion_por_region = sql^ consultaSQL
